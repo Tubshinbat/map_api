@@ -5,8 +5,13 @@ const asyncHandler = require("express-async-handler");
 const paginate = require("../utils/paginate");
 const { imageDelete } = require("../lib/photoUpload");
 const { valueRequired } = require("../lib/check");
-const { userSearch, placeCategorySearch } = require("../lib/searchOfterModel");
+const {
+  userSearch,
+  placeCategorySearch,
+  RegexOptions,
+} = require("../lib/searchOfterModel");
 const { sortBuild, getModelPaths } = require("../lib/build");
+const { slugify } = require("transliteration");
 
 // DEFUALT DATAS
 const sortDefualt = { createAt: -1 };
@@ -17,10 +22,23 @@ exports.createPlace = asyncHandler(async (req, res) => {
   req.body.status = userInput["status"] || true;
   req.body.createUser = req.userId;
 
+  const name = req.body.name;
+
+  const uniqueName = await Place.find({ name });
+
+  if (Array.isArray(uniqueName) && uniqueName.length > 0) {
+    const countSlug = uniqueName.length + 1;
+    req.body.slug = slugify(req.body.name) + "_" + countSlug;
+  } else req.body.slug = slugify(req.body.name);
+
   if (valueRequired(strFields))
     strFields.map((path) => {
       !valueRequired(userInput[path]) && delete req.body[path];
     });
+
+  if (userInput["services"]) {
+    req.body.services = JSON.parse(userInput["services"]);
+  }
 
   const place = await Place.create(req.body);
   res.status(200).json({
@@ -32,7 +50,7 @@ exports.createPlace = asyncHandler(async (req, res) => {
 exports.getPlaces = asyncHandler(async (req, res) => {
   const userInput = req.query;
   const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 25;
+  const limit = parseInt(req.query.limit) || 10;
   let sort = req.query.sort || sortDefualt;
 
   //  FIELDS
@@ -74,6 +92,7 @@ exports.getPlaces = asyncHandler(async (req, res) => {
 
   query.populate("createUser");
   query.populate("updateUser");
+  query.populate("categories");
 
   const qc = query.toConstructor();
   const clonedQuery = new qc();
@@ -82,12 +101,12 @@ exports.getPlaces = asyncHandler(async (req, res) => {
   const pagination = await paginate(page, limit, Place, result);
   query.limit(limit);
   query.skip(pagination.start - 1);
-  const banners = await query.exec();
+  const datas = await query.exec();
 
   res.status(200).json({
     success: true,
-    count: banners.length,
-    data: banners,
+    count: datas.length,
+    data: datas,
     pagination,
   });
 });
@@ -101,7 +120,7 @@ exports.multDeletePlace = asyncHandler(async (req, res) => {
   finds.map(async (el) => {
     el.pictures &&
       el.pictures.map(async (picture) => await imageDelete(picture));
-    el.marker && (await imageDelete(el.marker));
+    el.logo && (await imageDelete(el.logo));
   });
 
   await Place.deleteMany({ _id: { $in: ids } });
@@ -117,7 +136,7 @@ exports.deletePlace = asyncHandler(async (req, res) => {
 
   item.pictures &&
     item.pictures.map(async (picture) => await imageDelete(picture));
-  item.marker && (await imageDelete(item.marker));
+  item.logo && (await imageDelete(item.logo));
 
   res.status(200).json({
     success: true,
@@ -131,6 +150,9 @@ exports.getPlace = asyncHandler(async (req, res) => {
     .populate("updateUser");
 
   if (!place) throw new MyError("Өгөгдөл олдсонгүй. ", 404);
+
+  const views = place.views + 1;
+  await Place.findByIdAndUpdate(req.params.id, { views: views });
 
   const strFields = getModelPaths(Place);
   // if (process.env.LANGUAGE == "TRUE") {
@@ -158,10 +180,25 @@ exports.updatePlace = asyncHandler(async (req, res, next) => {
   const userInput = req.body;
   const strFields = getModelPaths(Place);
 
+  const uniqueName = await Place.find({ name });
+
+  if (Array.isArray(uniqueName) && uniqueName.length > 1) {
+    const countSlug = uniqueName.length + 1;
+    req.body.slug = slugify(req.body.name) + "_" + countSlug;
+  } else req.body.slug = slugify(req.body.name);
+
   if (valueRequired(strFields))
     strFields.map((path) => {
       if (!valueRequired(path)) req.body[path] = "";
     });
+
+  if (userInput["services"])
+    req.body.services = JSON.parse(userInput["services"]);
+  else req.body.services = [];
+
+  if (!userInput["logo"]) req.body.logo = "";
+  if (!userInput["categories"]) req.body.categories = [];
+  if (!userInput["pictures"]) req.body.pictures = [];
 
   req.body.updateUser = req.userId;
   req.body.updateAt = Date.now();

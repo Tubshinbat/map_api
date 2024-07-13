@@ -128,7 +128,7 @@ exports.deletetNewsCategory = asyncHandler(async (req, res, next) => {
     parentCheck(parentMenus);
   }
 
-  category.remove();
+  await NewsCategory.findByIdAndDelete(req.params.id);
 
   res.status(200).json({
     success: true,

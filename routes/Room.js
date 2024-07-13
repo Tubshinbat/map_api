@@ -8,6 +8,7 @@ const {
   multDeleteRoom,
   getCountRoom,
   getRoom,
+  updateRoom,
 } = require("../controller/Room");
 
 router
@@ -17,6 +18,9 @@ router
 
 router.route("/delete").delete(protect, authorize("admin"), multDeleteRoom);
 router.route("/count").get(getCountRoom);
-router.route("/:id").get(getRoom);
+router
+  .route("/:id")
+  .get(getRoom)
+  .put(protect, authorize("admin", "operator"), updateRoom);
 
 module.exports = router;

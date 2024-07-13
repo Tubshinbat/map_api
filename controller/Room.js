@@ -5,7 +5,11 @@ const asyncHandler = require("express-async-handler");
 const paginate = require("../utils/paginate");
 const { imageDelete } = require("../lib/photoUpload");
 const { valueRequired } = require("../lib/check");
-const { userSearch, placeSearch } = require("../lib/searchOfterModel");
+const {
+  userSearch,
+  placeSearch,
+  RegexOptions,
+} = require("../lib/searchOfterModel");
 const { sortBuild, getModelPaths } = require("../lib/build");
 
 // DEFUALT DATAS
@@ -74,6 +78,7 @@ exports.getRooms = asyncHandler(async (req, res) => {
 
   query.populate("createUser");
   query.populate("updateUser");
+  query.populate("place");
 
   const qc = query.toConstructor();
   const clonedQuery = new qc();
@@ -99,7 +104,8 @@ exports.multDeleteRoom = asyncHandler(async (req, res) => {
   if (finds.length <= 0) throw new MyError("Өгөгдөлүүд олдсонгүй", 404);
 
   finds.map(async (el) => {
-    el.photo && (await imageDelete(el.photo));
+    Array.isArray(el.pictures) &&
+      el.pictures.map(async (img) => await imageDelete(img));
   });
 
   await Room.deleteMany({ _id: { $in: ids } });
@@ -112,8 +118,9 @@ exports.multDeleteRoom = asyncHandler(async (req, res) => {
 exports.deleteRoom = asyncHandler(async (req, res) => {
   const item = await Room.findByIdAndDelete(req.params.id);
   if (!item) throw new MyError("Өгөгдөл олдсонгүй.", 404);
-  if (item.photo) await imageDelete(item.photo);
 
+  Array.isArray(item.pictures) &&
+    item.pictures.map(async (img) => await imageDelete(img));
   res.status(200).json({
     success: true,
   });
@@ -139,6 +146,7 @@ exports.updateRoom = asyncHandler(async (req, res, next) => {
   let room = await Room.findById(req.params.id);
   if (!room) throw new MyError("Өгөгдөл олдсонгүй. ", 404);
 
+  if (!valueRequired(req.body.pictures)) req.body.pictures = [];
   const userInput = req.body;
   const strFields = getModelPaths(Room);
 

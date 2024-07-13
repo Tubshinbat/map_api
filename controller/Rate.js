@@ -3,18 +3,22 @@ const MyError = require("../utils/myError");
 const asyncHandler = require("express-async-handler");
 const paginate = require("../utils/paginate");
 const { valueRequired } = require("../lib/check");
-const { placeSearch } = require("../lib/searchOfterModel");
+const { placeSearch, userSearch } = require("../lib/searchOfterModel");
+const { getModelPaths, sortBuild } = require("../lib/build");
+const { imageDelete } = require("../lib/photoUpload");
+const sortDefualt = { createAt: -1 };
 
 exports.createRate = asyncHandler(async (req, res, next) => {
   req.body.status = false;
 
   if (valueRequired(req.body.rate)) {
     const rate = parseInt(req.body.rate);
-    if (rate <= 0 && rate > 5) {
+
+    if (rate < 1 || rate > 5) {
       throw new MyError("Үнэлгээ 1-5ын хооронд өгөх боломжтой", "400");
     }
   }
-
+  req.body.createUser = req.userId;
   const rate = await Rate.create(req.body);
   res.status(200).json({
     success: true,
@@ -23,15 +27,16 @@ exports.createRate = asyncHandler(async (req, res, next) => {
 });
 
 exports.getRates = asyncHandler(async (req, res, next) => {
+  const userInput = req.query;
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 25;
-  let sort = req.query.sort || { createAt: -1 };
-  const select = req.query.select;
+  let sort = req.query.sort || sortDefualt;
+  const createUser = req.query.createUser;
+  const updateUser = req.query.updateUser;
 
   // PARTNER FIELDS
-  const rate = req.query.rate;
+  const strFields = getModelPaths(Rate);
   const place = req.query.place;
-
   const query = Rate.find();
 
   if (valueRequired(place)) {
@@ -39,22 +44,25 @@ exports.getRates = asyncHandler(async (req, res, next) => {
     if (ids) query.where("place").in(ids);
   }
 
-  if (valueRequired(sort)) {
-    if (typeof sort === "string") {
-      const spliteSort = sort.split(":");
-      let convertSort = {};
-      if (spliteSort[1] === "ascend") {
-        convertSort = { [spliteSort[0]]: 1 };
-      } else {
-        convertSort = { [spliteSort[0]]: -1 };
-      }
-      if (spliteSort[0] != "undefined") query.sort(convertSort);
-    } else {
-      query.sort(sort);
-    }
+  strFields.map((el) => {
+    if (valueRequired(userInput[el]))
+      query.find({ [el]: RegexOptions(userInput[el]) });
+  });
+
+  if (valueRequired(createUser)) {
+    const userData = await userSearch(createUser);
+    if (userData) query.where("createUser").in(userData);
   }
 
-  query.select(select);
+  if (valueRequired(updateUser)) {
+    const userData = await userSearch(updateUser);
+    if (userData) query.where("updateUser").in(userData);
+  }
+
+  if (valueRequired(sort)) query.sort(sortBuild(sort, sortDefualt));
+
+  query.populate("createUser");
+  query.populate("updateUser");
   query.populate("place");
 
   const qc = query.toConstructor();
@@ -82,10 +90,40 @@ exports.multDeleteRate = asyncHandler(async (req, res, next) => {
     throw new MyError("Таны сонгосон өгөгдөл олдсонгүй", 400);
   }
 
+  rates.map(async (el) => {
+    el.pictures && el.pictures.map(async (img) => await imageDelete(img));
+  });
+
   await Rate.deleteMany({ _id: { $in: ids } });
 
   res.status(200).json({
     success: true,
+  });
+});
+
+exports.updateRate = asyncHandler(async (req, res) => {
+  let rate = await Rate.findById(req.params.id);
+  if (!rate) throw new MyError("Өгөгдөл олдсонгүй.", 404);
+  if (!valueRequired(req.body.pictures)) req.body.pictures = [];
+
+  const strFields = getModelPaths(Rate);
+
+  if (valueRequired(strFields))
+    strFields.map((path) => {
+      if (!valueRequired(path)) req.body[path] = "";
+    });
+
+  req.body.updateUser = req.userId;
+  req.body.updateAt = Date.now();
+
+  rate = await Rate.findByIdAndUpdate(req.params.id, req.body, {
+    new: true,
+    runValidators: true,
+  });
+
+  res.status(200).json({
+    success: true,
+    data: rate,
   });
 });
 

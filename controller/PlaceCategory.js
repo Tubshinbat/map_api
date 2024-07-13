@@ -71,33 +71,36 @@ function createCategories(categories, parentId = null) {
 }
 
 const parentCheck = (menus) => {
-  menus.map(async (menu) => {
-    const result = await PlaceCategory.find({ parentId: menu._id });
-    if (result && result.length > 0) {
-      parentCheck(result);
-    }
-    await PlaceCategory.findByIdAndDelete(menu._id);
-  });
+  Array.isArray(menus) &&
+    menus.map(async (menu) => {
+      const result = await PlaceCategory.find({ parentId: menu._id });
+      if (result && result.length > 0) {
+        parentCheck(result);
+      }
+      await PlaceCategory.findByIdAndDelete(menu._id);
+    });
 };
 
 exports.getPlaceCategories = asyncHandler(async (req, res) => {
-  PlaceCategory.find({})
-    .sort({ position: 1 })
-    .exec((error, categories) => {
-      if (error)
-        return res.status(400).json({
-          success: false,
-          error,
-        });
-      if (categories) {
-        const categoryList = createCategories(categories);
+  try {
+    const categories = await PlaceCategory.find({})
+      .sort({ position: 1 })
+      .exec();
 
-        res.status(200).json({
-          success: true,
-          data: categoryList,
-        });
-      }
+    if (categories) {
+      const categoryList = createCategories(categories);
+
+      return res.status(200).json({
+        success: true,
+        data: categoryList,
+      });
+    }
+  } catch (error) {
+    return res.status(400).json({
+      success: false,
+      error,
     });
+  }
 });
 
 exports.multDeletePlaceCategory = asyncHandler(async (req, res) => {
@@ -112,15 +115,6 @@ exports.multDeletePlaceCategory = asyncHandler(async (req, res) => {
   });
 
   await Place.deleteMany({ _id: { $in: ids } });
-
-  res.status(200).json({
-    success: true,
-  });
-});
-
-exports.deletePlaceCategory = asyncHandler(async (req, res) => {
-  const item = await Place.findByIdAndDelete(req.params.id);
-  if (!item) throw new MyError("Өгөгдөл олдсонгүй.", 404);
 
   res.status(200).json({
     success: true,
@@ -169,11 +163,11 @@ exports.updatePlaceCategory = asyncHandler(async (req, res, next) => {
 exports.deletePlaceCategory = asyncHandler(async (req, res) => {
   const category = await PlaceCategory.findById(req.params.id);
   if (!category) throw new MyError("Өгөгдөл олдсонгүй.", 404);
+  if (category.icon) await imageDelete(category.icon);
 
   const parentMenus = await PlaceCategory.find({ parentId: req.params.id });
-  if (parentMenus) parentCheck(parentCheck);
-
-  category.remove();
+  if (parentMenus) parentCheck(parentMenus);
+  await PlaceCategory.findByIdAndDelete(req.params.id);
   res.status(200).json({
     success: true,
     data: category,

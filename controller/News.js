@@ -14,16 +14,19 @@ const {
 const { sortBuild, getModelPaths } = require("../lib/build");
 const sortDefualt = { createAt: -1 };
 
-exports.createNews = asyncHandler(async (req, res, next) => {
+exports.createNews = asyncHandler(async (req, res) => {
   req.body.createUser = req.userId;
   req.body.status = (valueRequired(req.body.status) && req.body.status) || true;
+  const slug = req.body.slug;
 
-  const uniqueName = await News.find({ name: req.body.name });
+  const uniqueName = await News.find({ slug });
+
   if (uniqueName.length > 0) {
-    req.body.slug = slugify(req.body.name + "_" + uniqueName.length);
-  } else {
-    req.body.slug = slugify(req.body.name);
+    const countSlug = uniqueName.length + 1;
+    req.body.slug = slug + "_" + countSlug;
   }
+
+  if (!valueRequired(req.body.createAt)) delete req.body.createAt;
 
   const news = await News.create(req.body);
 
@@ -389,31 +392,17 @@ exports.updateNews = asyncHandler(async (req, res, next) => {
     throw new MyError("Тухайн мэдээ олдсонгүй. ", 404);
   }
 
-  const name = req.body.name;
-  const nameUnique = await News.find({}).where("name").equals(name);
+  const slug = req.body.slug;
+  const uniqueName = await News.find({ slug });
 
-  if (nameUnique.length > 1) {
-    req.body.slug =
-      nameUnique[nameUnique.length - 1].slug + (nameUnique + 1).toString();
-  } else {
-    req.body.slug = slugify(name);
+  if (uniqueName.length > 0) {
+    const countSlug = uniqueName.length + 1;
+    req.body.slug = slug + "_" + countSlug;
   }
 
-  if (valueRequired(req.body.pictures) === false) {
-    req.body.pictures = [];
-  }
-
-  if (valueRequired(req.body.audios) === false) {
-    req.body.audios = [];
-  }
-
-  if (valueRequired(req.body.videos) === false) {
-    req.body.videos = [];
-  }
-
-  if (valueRequired(req.body.categories) === false) {
-    req.body.categories = [];
-  }
+  if (!valueRequired(req.body.createAt)) delete req.body.createAt;
+  if (!valueRequired(req.body.pictures)) req.body.pictures = [];
+  if (!valueRequired(req.body.categories)) req.body.categories = [];
 
   req.body.updateUser = req.userId;
   req.body.updateAt = Date.now();

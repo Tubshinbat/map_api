@@ -14,14 +14,17 @@ const RoomSchema = new Schema({
     trim: true,
   },
 
-  photo: {
-    type: String,
-    trim: true,
+  pictures: {
+    type: [String],
   },
 
   shortAbout: {
     type: String,
     trim: true,
+  },
+
+  details: {
+    type: String,
   },
 
   price: {
