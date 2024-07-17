@@ -7,16 +7,17 @@ const { getModelPaths } = require("../lib/build");
 const { valueRequired } = require("../lib/check");
 
 // DEFUALT DATAS
-const sortDefualt = { createAt: -1 };
+const sortDefault = { createAt: -1 };
 
 exports.createWebInfo = asyncHandler(async (req, res, next) => {
   const userInput = req.body;
   const strFields = getModelPaths(WebInfo);
 
-  if (valueRequired(strFields))
+  if (valueRequired(strFields)) {
     strFields.map((path) => {
-      !valueRequired(userInput[path]) && delete req.body[path];
+      if (!valueRequired(userInput[path])) delete req.body[path];
     });
+  }
 
   const webinfo = await WebInfo.create(req.body);
 
@@ -27,8 +28,11 @@ exports.createWebInfo = asyncHandler(async (req, res, next) => {
 });
 
 exports.getWebInfo = asyncHandler(async (req, res) => {
-  const query = WebInfo.findOne({}).sort(sortDefualt);
-  const webInfo = await query.exec();
+  const webInfo = await WebInfo.findOne({}).sort(sortDefault).exec();
+
+  if (!webInfo) {
+    throw new MyError("Вебийн мэдээлэл олдсонгүй", 404);
+  }
 
   res.status(200).json({
     success: true,
@@ -37,11 +41,20 @@ exports.getWebInfo = asyncHandler(async (req, res) => {
 });
 
 exports.updateWebInfo = asyncHandler(async (req, res) => {
-  const data = await WebInfo.findOne({}).sort(sortDefualt);
-  const webInfo = await WebInfo.findByIdAndUpdate(data._id, req.body, {
-    new: true,
-    runValidators: true,
-  });
+  const existingWebInfo = await WebInfo.findOne({}).sort(sortDefault).exec();
+
+  if (!existingWebInfo) {
+    throw new MyError("Вебийн мэдээлэл олдсонгүй", 404);
+  }
+
+  const webInfo = await WebInfo.findByIdAndUpdate(
+    existingWebInfo._id,
+    req.body,
+    {
+      new: true,
+      runValidators: true,
+    }
+  );
 
   res.status(200).json({
     success: true,

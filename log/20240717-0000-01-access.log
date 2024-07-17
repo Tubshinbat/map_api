@@ -1,0 +1,2 @@
+::1 - - [16/Jul/2024:15:36:16 +0000] "GET /api/v1/users/checklogin HTTP/1.1" 400 120 "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+::1 - - [16/Jul/2024:15:36:17 +0000] "GET /api/v1/rooms? HTTP/1.1" 304 - "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
