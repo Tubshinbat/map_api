@@ -12,11 +12,10 @@ const generateOrderNumber = async () => {
 
   const prefix = `O${year}${month}${day}`;
 
-  // Өнөөдөр үүсгэсэн захиалгын тоог шалгаж дараагийн дугаарыг үүсгэх
-  const todayOrders = await Order.countDocuments({
+  const todayOrdersCount = await mongoose.model("Order").countDocuments({
     orderNumber: new RegExp(`^${prefix}`),
   });
-  const orderNumber = todayOrders + 1;
+  const orderNumber = todayOrdersCount + 1;
 
   return `${prefix}${String(orderNumber).padStart(2, "0")}`;
 };
@@ -42,7 +41,7 @@ const OrderSchema = new Schema({
 
   paid: {
     type: String,
-    enum: ["qpay", "bank", "trial", "none"],
+    enum: ["qpay", "bank", "none"],
     required: [true, "Төлбөр төлсөн хэрэгсэлийг сонгоно уу"],
     default: "none",
   },
@@ -62,12 +61,12 @@ const OrderSchema = new Schema({
     default: null,
   },
 
-  createdAt: {
+  createAt: {
     type: Date,
     default: Date.now,
   },
 
-  updatedAt: {
+  updateAt: {
     type: Date,
     default: Date.now,
   },
@@ -101,13 +100,36 @@ OrderSchema.pre("save", async function (next) {
   next();
 });
 
+OrderSchema.pre("save", async function (next) {
+  this.orderNumber = await generateOrderNumber();
+
+  this.updatedAt = Date.now();
+
+  if (this.isModified("paid") && this.paid === "qpay") {
+    try {
+      const qpayInvoice = await createQPayInvoice(this);
+      this.qpayInvoice = qpayInvoice; // QPay invoice мэдээллийг хадгалах
+
+      // QR кодын холбоосыг олох
+      const qrLink = qpayInvoice.links.find((link) => link.rel === "qr_code");
+      if (qrLink) {
+        this.qpayInvoice.qr_image = qrLink.href;
+      }
+    } catch (error) {
+      return next(error); // Алдаа гарсан тохиолдолд next(error) ашиглан middleware-г зогсоох
+    }
+  }
+
+  next();
+});
+
 OrderSchema.pre("findOneAndUpdate", function (next) {
   this.set({ updatedAt: Date.now() });
   next();
 });
 
 OrderSchema.pre("save", function (next) {
-  if (this.isModified("paid") && this.paid !== "none") {
+  if (this.isModified("paid") && this.paid !== "none" && this.status == true) {
     this.activatedAt = Date.now();
   }
   next();

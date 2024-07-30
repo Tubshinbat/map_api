@@ -45,8 +45,24 @@ const updateMembershipDates = async (userId, planId) => {
   await user.save();
 };
 
+const generateOrderNumber = async () => {
+  const now = new Date();
+  const year = now.getFullYear().toString().slice(-2);
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+
+  const prefix = `O${year}${month}${day}`;
+
+  const todayOrdersCount = await Order.countDocuments({
+    orderNumber: new RegExp(`^${prefix}`),
+  });
+  const orderNumber = todayOrdersCount + 1;
+
+  return `${prefix}${String(orderNumber).padStart(2, "0")}`;
+};
+
 exports.createOrder = asyncHandler(async (req, res) => {
-  const userInput = req.body;
+  const { plan, status, paid, activedUser } = req.body;
   req.body.createUser = req.userId;
   req.body.status = valueRequired(req.body.status) || false;
 
@@ -54,33 +70,38 @@ exports.createOrder = asyncHandler(async (req, res) => {
     await updateMembershipDates(req.body.activedUser, req.body.plan);
   }
 
-  const order = await Order.create(req.body);
+  const order = new Order({ plan, status, paid, activedUser });
+  order.orderNumber = await generateOrderNumber();
+  await order.save();
 
   res.status(200).json({
     success: true,
     data: order,
+    qpayInvoice: order.qpayInvoice,
   });
 });
 
 exports.createOrderWithQPay = asyncHandler(async (req, res) => {
-  const { amount, description, plan, paid, activedUser } = req.body;
+  const { amount, description, plan, paid, activedUser, status } = req.body;
 
   // Order үүсгэх
-  const order = new Order({
-    amount,
-    description,
-    plan,
-    paid,
-    activedUser,
-  });
+  try {
+    const order = new Order({
+      status,
+      amount,
+      description,
+      plan,
+      paid,
+      activedUser,
+    });
 
-  await order.save();
-
-  res.status(201).json({
-    success: true,
-    order,
-    qpayInvoice: order.qpayInvoice,
-  });
+    await order.save();
+    res.status(201).json({
+      success: true,
+      order,
+      qpayInvoice: order.qpayInvoice,
+    });
+  } catch (error) {}
 });
 
 exports.qpayCallback = asyncHandler(async (req, res) => {
@@ -115,7 +136,11 @@ exports.getOrders = asyncHandler(async (req, res) => {
   await applyFilters(query, filters);
 
   query.sort(sortBuild(sort, sortDefault));
-  query.populate("plan").populate("createUser").populate("updateUser");
+  query
+    .populate("plan")
+    .populate("createUser")
+    .populate("updateUser")
+    .populate("activedUser");
 
   const totalDocuments = await query.clone().countDocuments();
   const pagination = paginate(page, limit, Order, totalDocuments);
@@ -172,7 +197,9 @@ exports.multipleDeleteOrder = asyncHandler(async (req, res) => {
 });
 
 exports.getOrder = asyncHandler(async (req, res) => {
-  const order = await Order.findById(req.params.id).populate("place");
+  const order = await Order.findById(req.params.id)
+    .populate("plan")
+    .populate("activedUser");
 
   if (!valueRequired(order)) throw new MyError("Тухайн өгөгдөл олсдонгүй", 404);
 
@@ -182,7 +209,7 @@ exports.getOrder = asyncHandler(async (req, res) => {
   });
 });
 
-exports.updatOrder = asyncHandler(async (req, res) => {
+exports.updateOrder = asyncHandler(async (req, res) => {
   const userInput = req.body;
 
   // Захиалгын өмнөх утгыг авах

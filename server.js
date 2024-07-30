@@ -29,6 +29,11 @@ const PlaceCategoryRouters = require("./routes/PlaceCategories");
 const PlanRouters = require("./routes/Plan");
 const RateRouters = require("./routes/Rate");
 const RoomRouters = require("./routes/Room");
+const OrderRouters = require("./routes/Order");
+const WebinfoRouters = require("./routes/WebInfo");
+const SocialRouters = require("./routes/SocialLink");
+const BankAccountRouters = require("./routes/BankAccount");
+const QpayAccountRouters = require("./routes/Qpay");
 
 dotenv.config({ path: "./config/config.env" });
 const app = express();
@@ -36,7 +41,12 @@ const app = express();
 connectDB();
 
 // Манай рест апиг дуудах эрхтэй сайтуудын жагсаалт :
-var whitelist = ["http://localhost:3000", "http://localhost:3001"];
+var whitelist = [
+  "http://localhost:3000",
+  "http://localhost:3001",
+  "https://map.webr.mn",
+  "http://map.webr.mn",
+];
 
 // Өөр домэйн дээр байрлах клиент вэб аппуудаас шаардах шаардлагуудыг энд тодорхойлно
 var corsOptions = {
@@ -97,6 +107,11 @@ app.use("/api/v1/place-categories", PlaceCategoryRouters);
 app.use("/api/v1/plans", PlanRouters);
 app.use("/api/v1/rates", RateRouters);
 app.use("/api/v1/rooms", RoomRouters);
+app.use("/api/v1/orders", OrderRouters);
+app.use("/api/v1/webinfos", WebinfoRouters);
+app.use("/api/v1/socials", SocialRouters);
+app.use("/api/v1/bankaccounts", BankAccountRouters);
+app.use("/api/v1/qpayaccounts", QpayAccountRouters);
 
 app.use(errorHandler);
 // Алдаа үүсэхэд барьж авч алдааны мэдээллийг клиент тал руу автоматаар мэдээлнэ

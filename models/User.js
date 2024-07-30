@@ -54,15 +54,6 @@ const UserSchema = new mongoose.Schema(
       type: String,
     },
 
-    cover: {
-      type: String,
-    },
-
-    phoneCode: {
-      type: Number,
-      trim: true,
-    },
-
     phoneNumber: {
       type: Number,
       required: [true, "Утасны дугаар заавал оруулна уу"],
@@ -78,7 +69,7 @@ const UserSchema = new mongoose.Schema(
     role: {
       type: String,
       required: [true, "Хэрэглэгчийн эрхийг сонгоно уу"],
-      enum: ["user", "operator", "admin", "member", "partner"],
+      enum: ["user", "operator", "admin"],
       default: "user",
     },
 

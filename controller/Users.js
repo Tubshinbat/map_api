@@ -82,22 +82,45 @@ exports.getUser = asyncHandler(async (req, res) => {
 
 exports.updateUser = asyncHandler(async (req, res) => {
   const userInput = req.body;
-  const strFields = getModelPaths(Banner);
+  const userId = req.params.id;
+  const strFields = getModelPaths(User);
 
-  if (valueRequired(strFields))
-    strFields.map((path) => {
-      if (!valueRequired(path)) req.body[path] = "";
+  if (valueRequired(strFields)) {
+    strFields.forEach((path) => {
+      if (!valueRequired(userInput[path])) req.body[path] = "";
     });
+  }
 
-  req.body.email = userInput["email"].trim().toLowerCase();
-  req.body.age = parseInt(userInput["age"]) || 0;
+  req.body.email = userInput.email.trim().toLowerCase();
+  req.body.age = parseInt(userInput.age) || 0;
+  req.body.memberShip = req.body.memberShip || false;
 
-  const user = await User.findByIdAndUpdate(req.userId, req.body, {
+  // Одоогийн хэрэглэгчийн мэдээллийг авах
+  const currentUser = await User.findById(userId);
+
+  if (!currentUser) throw new MyError("Хэрэглэгч олдсонгүй", 404);
+
+  // Өөрийн email болон phonenumber -г update хийх үед unique шалгалтыг хийхгүй
+  if (userInput.email !== currentUser.email) {
+    const emailExists = await User.findOne({ email: userInput.email });
+    if (emailExists)
+      throw new MyError("Email аль хэдийн ашиглагдаж байна", 400);
+  }
+
+  if (parseInt(userInput.phoneNumber) !== parseInt(currentUser.phoneNumber)) {
+    const phoneExists = await User.findOne({
+      phonenumber: userInput.phonenumber,
+    });
+    if (phoneExists)
+      throw new MyError("Утасны дугаар аль хэдийн ашиглагдаж байна", 400);
+  }
+
+  const user = await User.findByIdAndUpdate(userId, req.body, {
     new: true,
     runValidators: true,
   });
 
-  if (!valueRequired(user)) throw new MyError("Мэдээлэл олдсонгүй", 404);
+  if (!user) throw new MyError("Хэрэглэгчийн мэдээлэл шинэчилж чадсангүй", 404);
 
   res.status(200).json({
     success: true,
@@ -136,7 +159,7 @@ exports.phoneCheck = asyncHandler(async (req, res) => {
 
 exports.changePassword = asyncHandler(async (req, res) => {
   const userInput = req.body;
-  const userId = userInput["id"];
+  const userId = req.params.id;
 
   if (!valueRequired(userInput["password"]))
     throw new MyError("Нууц үгээ оруулна уу", 404);
@@ -153,7 +176,7 @@ exports.changePassword = asyncHandler(async (req, res) => {
 
   res.status(200).json({
     success: true,
-    user,
+    data: user,
   });
 });
 
@@ -172,7 +195,7 @@ exports.getUsers = asyncHandler(async (req, res) => {
 
   strFields.map((field) => {
     if (valueRequired(userInput[field]))
-      query.find({ [el]: RegexOptions(userInput[el]) });
+      query.find({ [field]: RegexOptions(userInput[field]) });
   });
 
   if (valueRequired(status)) {

@@ -1,4 +1,4 @@
-const Plan = require("../models/Plan");
+const BankAccount = require("../models/BankAccount");
 const MyError = require("../utils/myError");
 const asyncHandler = require("express-async-handler");
 const Language = require("../models/Language");
@@ -13,9 +13,9 @@ const { buildLanguage, buildUpdateLanguage } = require("../lib/language");
 // DEFUALT DATAS
 const sortDefualt = { price: -1 };
 
-exports.createPlan = asyncHandler(async (req, res) => {
+exports.createBankAccount = asyncHandler(async (req, res) => {
   const userInput = req.body;
-  const strFields = getModelPaths(Plan);
+  const strFields = getModelPaths(BankAccount);
   req.body.status = userInput["status"] || true;
   req.body.createUser = req.userId;
 
@@ -24,26 +24,26 @@ exports.createPlan = asyncHandler(async (req, res) => {
       !valueRequired(userInput[path]) && delete req.body[path];
     });
 
-  const plan = await Plan.create(req.body);
+  const bankAccount = await BankAccount.create(req.body);
   res.status(200).json({
     success: true,
-    data: plan,
+    data: bankAccount,
   });
 });
 
-exports.getPlans = asyncHandler(async (req, res) => {
+exports.getBankAccounts = asyncHandler(async (req, res) => {
   const userInput = req.query;
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 25;
   let sort = req.query.sort || sortDefualt;
 
   //  FIELDS
-  const strFields = getModelPaths(Plan);
+  const strFields = getModelPaths(BankAccount);
   const createUser = userInput["createUser"];
   const updateUser = userInput["updateUser"];
   const status = userInput["status"];
 
-  const query = Plan.find();
+  const query = BankAccount.find();
 
   strFields.map((el) => {
     if (valueRequired(userInput[el]))
@@ -75,34 +75,34 @@ exports.getPlans = asyncHandler(async (req, res) => {
   const clonedQuery = new qc();
   const result = await clonedQuery.countDocuments();
 
-  const pagination = await paginate(page, limit, Plan, result);
+  const pagination = await paginate(page, limit, BankAccount, result);
   query.limit(limit);
   query.skip(pagination.start - 1);
-  const plans = await query.exec();
+  const bankAccounts = await query.exec();
 
   res.status(200).json({
     success: true,
-    count: plans.length,
-    data: plans,
+    count: bankAccounts.length,
+    data: bankAccounts,
     pagination,
   });
 });
 
-exports.multDeletePlan = asyncHandler(async (req, res) => {
+exports.multDeleteBankAccount = asyncHandler(async (req, res) => {
   const ids = req.queryPolluted.id;
-  const finds = await Plan.find({ _id: { $in: ids } });
+  const finds = await BankAccount.find({ _id: { $in: ids } });
 
   if (finds.length <= 0) throw new MyError("Өгөгдөлүүд олдсонгүй", 404);
 
-  await Plan.deleteMany({ _id: { $in: ids } });
+  await BankAccount.deleteMany({ _id: { $in: ids } });
 
   res.status(200).json({
     success: true,
   });
 });
 
-exports.deletePlan = asyncHandler(async (req, res) => {
-  const item = await Plan.findByIdAndDelete(req.params.id);
+exports.deleteBankAccount = asyncHandler(async (req, res) => {
+  const item = await BankAccount.findByIdAndDelete(req.params.id);
   if (!item) throw new MyError("Өгөгдөл олдсонгүй.", 404);
 
   res.status(200).json({
@@ -110,25 +110,25 @@ exports.deletePlan = asyncHandler(async (req, res) => {
   });
 });
 
-exports.getPlan = asyncHandler(async (req, res) => {
-  const plan = await Plan.findByIdAndUpdate(req.params.id)
+exports.getBankAccount = asyncHandler(async (req, res) => {
+  const bankAccount = await BankAccount.findByIdAndUpdate(req.params.id)
     .populate("createUser")
     .populate("updateUser");
 
-  if (!plan) throw new MyError("Өгөгдөл олдсонгүй. ", 404);
+  if (!bankAccount) throw new MyError("Өгөгдөл олдсонгүй. ", 404);
 
   res.status(200).json({
     success: true,
-    data: plan,
+    data: bankAccount,
   });
 });
 
-exports.updatePlan = asyncHandler(async (req, res, next) => {
-  let plan = await Plan.findById(req.params.id);
-  if (!plan) throw new MyError("Өгөгдөл олдсонгүй. ", 404);
+exports.updateBankAccount = asyncHandler(async (req, res, next) => {
+  let bankAccount = await BankAccount.findById(req.params.id);
+  if (!bankAccount) throw new MyError("Өгөгдөл олдсонгүй. ", 404);
 
   const userInput = req.body;
-  const strFields = getModelPaths(Plan);
+  const strFields = getModelPaths(BankAccount);
 
   if (valueRequired(strFields))
     strFields.map((path) => {
@@ -138,21 +138,21 @@ exports.updatePlan = asyncHandler(async (req, res, next) => {
   req.body.updateUser = req.userId;
   req.body.updateAt = Date.now();
 
-  plan = await Plan.findByIdAndUpdate(req.params.id, req.body, {
+  bankAccount = await BankAccount.findByIdAndUpdate(req.params.id, req.body, {
     new: true,
     runValidators: true,
   });
 
   res.status(200).json({
     success: true,
-    data: plan,
+    data: bankAccount,
   });
 });
 
-exports.getCountPlan = asyncHandler(async (req, res, next) => {
-  const plan = await Plan.countDocuments();
+exports.getCountBankAccount = asyncHandler(async (req, res, next) => {
+  const bankAccount = await BankAccount.countDocuments();
   res.status(200).json({
     success: true,
-    data: plan,
+    data: bankAccount,
   });
 });

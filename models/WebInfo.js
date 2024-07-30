@@ -9,6 +9,8 @@ const WebInfoSchema = new mongoose.Schema({
   siteInfo: { type: String, trim: true },
   policy: { type: String, trim: true },
   phone: { type: [Number] },
+  lat: { type: String },
+  long: { type: String },
   email: {
     type: String,
     match: [

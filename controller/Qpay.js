@@ -21,6 +21,18 @@ exports.createQpayUser = asyncHandler(async (req, res) => {
   });
 });
 
+exports.getQpayUser = asyncHandler(async (req, res) => {
+  const existingUser = await QpayUser.findOne();
+  if (!existingUser) {
+    throw new MyError("Qpay хэрэглэгчийн тохиргоог хийгдээгүй байна.", 400);
+  }
+
+  res.status(200).json({
+    success: true,
+    data: existingUser,
+  });
+});
+
 exports.updateQpayUser = asyncHandler(async (req, res) => {
   const { username, password } = req.body;
 

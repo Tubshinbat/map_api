@@ -6,6 +6,9 @@ const {
   createOrderWithQPay,
   multipleDeleteOrder,
   getOrders,
+  getCountOrders,
+  getOrder,
+  updateOrder,
 } = require("../controller/Order");
 const { protect, authorize } = require("../middleware/protect");
 
@@ -16,16 +19,14 @@ router
 
 router.route("/").post(protect, createOrderWithQPay);
 
-router.route("/slug/:slug").get(getSlugSingleNews);
-
-router.route("/count").get(getCountNews);
+router.route("/count").get(getCountOrders);
 
 router
   .route("/delete")
   .delete(protect, authorize("admin"), multipleDeleteOrder);
 router
   .route("/:id")
-  .get(getSingleNews)
-  .put(protect, authorize("admin", "operator"), updateNews);
+  .get(getOrder)
+  .put(protect, authorize("admin", "operator"), updateOrder);
 
 module.exports = router;

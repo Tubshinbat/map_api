@@ -16,6 +16,7 @@ const {
   verifyOTP,
   resetPassword,
   checklogin,
+  changePassword,
 } = require("../controller/Users");
 
 router.route("/login").post(login);
@@ -29,6 +30,10 @@ router
   .route("/")
   .post(protect, authorize("admin", "operator"), createUser)
   .get(protect, authorize("admin", "operator"), getUsers);
+
+router
+  .route("/changepassword/:id")
+  .put(protect, authorize("admin", "operator"), changePassword);
 
 router.route("/count").get(protect, authorize("admin", "operator"), getCount);
 router.route("/delete").delete(protect, authorize("admin"), multDeleteUsers);

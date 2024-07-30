@@ -68,7 +68,7 @@ const PlaceSchema = new Schema({
     required: [true, "Уртраг өргөрөг заавал оруулна уу"],
   },
 
-  lng: {
+  long: {
     type: String,
     trim: true,
     required: [true, "Уртраг өргөрөг заавал оруулна уу"],
