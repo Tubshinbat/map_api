@@ -1,7 +1,7 @@
 module.exports = {
   apps: [
     {
-      name: "seruunagaar-cms-api",
+      name: "map-cms-api",
       script: "npm start",
       args: ["--color"],
       env: {
