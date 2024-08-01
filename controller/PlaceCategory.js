@@ -63,6 +63,7 @@ function createCategories(categories, parentId = null) {
       _id: cate._id,
       name: cate.name,
       position: cate.position,
+      icon: cate.icon,
       children: createCategories(categories, cate._id),
     });
   }
