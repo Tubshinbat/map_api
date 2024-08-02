@@ -58,6 +58,7 @@ exports.getPlaces = asyncHandler(async (req, res) => {
   const createUser = userInput["createUser"];
   const updateUser = userInput["updateUser"];
   const status = userInput["status"];
+  const star = userInput['star']
   const categories = userInput["categories"];
 
   const query = Place.find();
@@ -81,6 +82,12 @@ exports.getPlaces = asyncHandler(async (req, res) => {
     if (status.split(",").length > 1)
       query.where("status").in(status.split(","));
     else query.where("status").equals(status);
+  }
+
+  if(valueRequired(star)){
+    if (star.split(",").length > 1)
+      query.where("star").in(star.split(","));
+    else query.where("star").equals(star);
   }
 
   if (valueRequired(categories)) {
