@@ -254,18 +254,16 @@ exports.getRandomCategoryPlaces = asyncHandler(async (req, res, next) => {
       { $sample: { size: 6 } },
     ]);
 
-    console.log(placesForCategory1);
-    console.log("==========");
-    console.log(placesForCategory2);
-
     res.status(200).json({
       success: true,
       data: [
         {
+          categoryId: randomCategories[0]._id,
           name: randomCategories[0].name,
           data: placesForCategory1,
         },
         {
+          categoryId: randomCategories[1]._id,
           name: randomCategories[1].name,
           data: placesForCategory2,
         },
