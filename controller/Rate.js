@@ -140,7 +140,6 @@ exports.getRate = asyncHandler(async (req, res, next) => {
     data: rate,
   });
 });
-
 const formatCount = (count) => {
   if (count >= 1000) {
     return (count / 1000).toFixed(1) + "k";
@@ -196,7 +195,35 @@ exports.getTopRatedPlaces = asyncHandler(async (req, res, next) => {
           averageRating: 1,
           totalReviews: 1,
           totalReviewers: 1,
-          reviewers: { $slice: ["$reviewerDetails", 3] }, // Зөвхөн 3 хүний мэдээллийг буцаана
+          averageRatingOutOfFive: {
+            $concat: [{ $toString: { $round: ["$averageRating", 1] } }, "/5"],
+          },
+          reviewers: {
+            $slice: [
+              {
+                $map: {
+                  input: "$reviewerDetails",
+                  as: "reviewer",
+                  in: {
+                    name: "$$reviewer.name",
+                    rating: {
+                      $arrayElemAt: [
+                        {
+                          $filter: {
+                            input: "$reviewers",
+                            as: "r",
+                            cond: { $eq: ["$$r", "$$reviewer._id"] },
+                          },
+                        },
+                        0,
+                      ],
+                    },
+                  },
+                },
+              },
+              3,
+            ],
+          },
           placeDetails: {
             name: 1,
             addressText: 1,
@@ -213,7 +240,7 @@ exports.getTopRatedPlaces = asyncHandler(async (req, res, next) => {
 
     const formattedPlaces = topRatedPlaces.map((place) => ({
       ...place,
-      totalReviewers: formatCount(place.totalReviewers), // Тоог 1k, 2k гэх мэтээр товчлох
+      totalReviewers: formatCount(place.totalReviewers),
     }));
 
     res.status(200).json({
