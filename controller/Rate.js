@@ -216,7 +216,7 @@ exports.getTopRatedPlaces = asyncHandler(async (req, res, next) => {
                   as: "reviewer",
                   in: {
                     name: "$$reviewer.firstName",
-                    picture: "$$reviwer.picture",
+                    picture: "$$reviewer.picture",
                     rating: {
                       $arrayElemAt: [
                         {
@@ -236,11 +236,11 @@ exports.getTopRatedPlaces = asyncHandler(async (req, res, next) => {
             ],
           },
           placeDetails: {
-            name: 1,
-            addressText: 1,
-            logo: 1,
-            pictures: 1,
-            categories: 1,
+            name: "$placeDetails.name",
+            addressText: "$placeDetails.addressText",
+            logo: "$placeDetails.logo",
+            pictures: "$placeDetails.pictures",
+            categories: "$placeDetails.categories",
           },
         },
       },
