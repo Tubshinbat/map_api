@@ -152,6 +152,11 @@ exports.getTopRatedPlaces = asyncHandler(async (req, res, next) => {
   try {
     const topRatedPlaces = await Rate.aggregate([
       {
+        $match: {
+          status: true,
+        },
+      },
+      {
         $group: {
           _id: "$place",
           averageRating: { $avg: "$rate" },
