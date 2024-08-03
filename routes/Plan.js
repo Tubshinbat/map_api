@@ -10,12 +10,14 @@ const {
   updatePlan,
   getCountPlan,
 } = require("../controller/Plan");
+const { getTopRatedPlaces } = require("../controller/Rate");
 
 router
   .route("/")
   .post(protect, authorize("admin", "operator"), createPlan)
   .get(getPlans);
 
+  router.route('/top-rated-places').get(getTopRatedPlaces)
 router.route("/count").get(getCountPlan);
 router.route("/delete").delete(protect, authorize("admin"), multDeletePlan);
 

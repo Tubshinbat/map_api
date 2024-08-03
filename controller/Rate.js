@@ -1,5 +1,5 @@
 const Rate = require("../models/Rate");
-const Place = require('../models/Place');
+const Place = require("../models/Place");
 const MyError = require("../utils/myError");
 const asyncHandler = require("express-async-handler");
 const paginate = require("../utils/paginate");
@@ -141,6 +141,14 @@ exports.getRate = asyncHandler(async (req, res, next) => {
   });
 });
 
+const formatCount = (count) => {
+  if (count >= 1000) {
+    return (count / 1000).toFixed(1) + "k";
+  }
+  return count.toString();
+};
+
+// Хамгийн олон үнэлгээ авсан, өндөр үнэлгээтэй газруудыг авах endpoint
 exports.getTopRatedPlaces = asyncHandler(async (req, res, next) => {
   try {
     const topRatedPlaces = await Rate.aggregate([
@@ -149,6 +157,12 @@ exports.getTopRatedPlaces = asyncHandler(async (req, res, next) => {
           _id: "$place",
           averageRating: { $avg: "$rate" },
           totalReviews: { $sum: 1 },
+          reviewers: { $addToSet: "$createUser" },
+        },
+      },
+      {
+        $addFields: {
+          totalReviewers: { $size: "$reviewers" },
         },
       },
       {
@@ -159,7 +173,7 @@ exports.getTopRatedPlaces = asyncHandler(async (req, res, next) => {
       },
       {
         $lookup: {
-          from: "places", // Танай Place цуглуулгын нэр байх ёстой
+          from: "places",
           localField: "_id",
           foreignField: "_id",
           as: "placeDetails",
@@ -169,10 +183,20 @@ exports.getTopRatedPlaces = asyncHandler(async (req, res, next) => {
         $unwind: "$placeDetails",
       },
       {
+        $lookup: {
+          from: "users",
+          localField: "reviewers",
+          foreignField: "_id",
+          as: "reviewerDetails",
+        },
+      },
+      {
         $project: {
           _id: 1,
           averageRating: 1,
           totalReviews: 1,
+          totalReviewers: 1,
+          reviewers: { $slice: ["$reviewerDetails", 3] }, // Зөвхөн 3 хүний мэдээллийг буцаана
           placeDetails: {
             name: 1,
             addressText: 1,
@@ -183,19 +207,23 @@ exports.getTopRatedPlaces = asyncHandler(async (req, res, next) => {
         },
       },
       {
-        $limit: 10, // Хүссэн газруудын тоог өөрчлөх
+        $limit: 10,
       },
     ]);
 
+    const formattedPlaces = topRatedPlaces.map((place) => ({
+      ...place,
+      totalReviewers: formatCount(place.totalReviewers), // Тоог 1k, 2k гэх мэтээр товчлох
+    }));
+
     res.status(200).json({
       success: true,
-      data: topRatedPlaces,
+      data: formattedPlaces,
     });
   } catch (error) {
     next(error);
   }
 });
-
 
 exports.getCountRate = asyncHandler(async (req, res) => {
   const count = await Rate.countDocuments();

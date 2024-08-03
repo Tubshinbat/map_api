@@ -10,7 +10,7 @@ const {
   updatePlace,
   getCountPlace,
 } = require("../controller/Place");
-const { getTopRatedPlaces } = require("../controller/Rate");
+
 
 router
   .route("/")
@@ -18,7 +18,6 @@ router
   .get(getPlaces);
 
 router.route("/count").get(getCountPlace);
-router.route('/top-rated-places').get(getTopRatedPlaces)
 router.route("/delete").delete(protect, authorize("admin"), multDeletePlace);
 router
   .route("/:id")
