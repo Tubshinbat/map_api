@@ -187,7 +187,7 @@ exports.updatePlace = asyncHandler(async (req, res, next) => {
   const userInput = req.body;
   const strFields = getModelPaths(Place);
 
-  const uniqueName = await Place.find({ name });
+  const uniqueName = await Place.find({ name: userInput["name"] });
 
   if (Array.isArray(uniqueName) && uniqueName.length > 1) {
     const countSlug = uniqueName.length + 1;
