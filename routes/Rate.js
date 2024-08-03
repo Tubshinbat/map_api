@@ -9,6 +9,7 @@ const {
   multDeleteRate,
   getRate,
   updateRate,
+  getTopRatedPlaces,
 } = require("../controller/Rate");
 
 router
@@ -17,7 +18,9 @@ router
   .get(getRates);
 
 router.route("/delete").delete(protect, authorize("admin"), multDeleteRate);
+
 router.route("/count").get(getCountRate);
+router.route("/top-rated-places").get(getTopRatedPlaces);
 router
   .route("/:id")
   .get(getRate)
