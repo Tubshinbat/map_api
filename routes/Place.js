@@ -11,12 +11,12 @@ const {
   getCountPlace,
 } = require("../controller/Place");
 
-
 router
   .route("/")
   .post(protect, authorize("admin", "operator"), createPlace)
   .get(getPlaces);
 
+router.route("/random-place-categories");
 router.route("/count").get(getCountPlace);
 router.route("/delete").delete(protect, authorize("admin"), multDeletePlace);
 router

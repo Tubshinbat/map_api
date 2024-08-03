@@ -12,6 +12,7 @@ const {
 } = require("../lib/searchOfterModel");
 const { sortBuild, getModelPaths } = require("../lib/build");
 const { slugify } = require("transliteration");
+const PlaceCategory = require("../models/PlaceCategory");
 
 // DEFUALT DATAS
 const sortDefualt = { createAt: -1 };
@@ -58,7 +59,7 @@ exports.getPlaces = asyncHandler(async (req, res) => {
   const createUser = userInput["createUser"];
   const updateUser = userInput["updateUser"];
   const status = userInput["status"];
-  const star = userInput['star']
+  const star = userInput["star"];
   const categories = userInput["categories"];
 
   const query = Place.find();
@@ -84,9 +85,8 @@ exports.getPlaces = asyncHandler(async (req, res) => {
     else query.where("status").equals(status);
   }
 
-  if(valueRequired(star)){
-    if (star.split(",").length > 1)
-      query.where("star").in(star.split(","));
+  if (valueRequired(star)) {
+    if (star.split(",").length > 1) query.where("star").in(star.split(","));
     else query.where("star").equals(star);
   }
 
@@ -228,4 +228,44 @@ exports.getCountPlace = asyncHandler(async (req, res, next) => {
     success: true,
     count,
   });
+});
+
+const getRandomCategories = async () => {
+  const categories = await PlaceCategory.aggregate([{ $sample: { size: 2 } }]);
+  if (categories.length < 2) {
+    throw new MyError("Хангалттай ангилал байхгүй байна.", 400);
+  }
+  return categories;
+};
+
+exports.getRandomCategoryPlaces = asyncHandler(async (req, res, next) => {
+  try {
+    const randomCategories = await getRandomCategories();
+    const categoryIds = randomCategories.map((category) => category._id);
+
+    const placesForCategory1 = await Place.find({
+      categories: categoryIds[0],
+      status: true,
+    }).limit(6);
+    const placesForCategory2 = await Place.find({
+      categories: categoryIds[1],
+      status: true,
+    }).limit(6);
+
+    res.status(200).json({
+      success: true,
+      data: [
+        {
+          name: randomCategories[0].name,
+          data: placesForCategory1,
+        },
+        {
+          name: randomCategories[1].name,
+          data: placesForCategory2,
+        },
+      ],
+    });
+  } catch (error) {
+    next(error);
+  }
 });
