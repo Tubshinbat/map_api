@@ -26,11 +26,13 @@ const PlaceSchema = new Schema({
   pictures: {
     type: [String],
     trim: true,
+    default: ["no-photo.jpg"],
   },
 
   logo: {
     type: String,
     trim: true,
+    default: "no-logo.png",
   },
 
   about: {

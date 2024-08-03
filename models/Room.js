@@ -16,6 +16,7 @@ const RoomSchema = new Schema({
 
   pictures: {
     type: [String],
+    defualt: "no-photo.jpg",
   },
 
   shortAbout: {

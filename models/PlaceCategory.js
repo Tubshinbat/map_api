@@ -16,6 +16,7 @@ const PlaceCategorySchema = new Schema({
   },
   icon: {
     type: String,
+    default: "no-icon.png",
   },
 
   parentId: {

@@ -10,7 +10,7 @@ const BankAccountSchemma = new Schema({
 
   bankLogo: {
     type: String,
-    default: null,
+    default: "no-bank-account.jpg",
   },
 
   bankName: {

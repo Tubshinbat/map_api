@@ -29,6 +29,7 @@ const NewsSchema = new mongoose.Schema({
 
   pictures: {
     type: [String],
+    default: ["no-photo.jpg"],
   },
 
   categories: [

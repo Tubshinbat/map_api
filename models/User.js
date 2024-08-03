@@ -52,6 +52,7 @@ const UserSchema = new mongoose.Schema(
 
     picture: {
       type: String,
+      default: "no-avatar.png",
     },
 
     phoneNumber: {
