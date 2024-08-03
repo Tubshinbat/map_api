@@ -1,4 +1,5 @@
 const Rate = require("../models/Rate");
+const Place = require('../models/Place');
 const MyError = require("../utils/myError");
 const asyncHandler = require("express-async-handler");
 const paginate = require("../utils/paginate");
@@ -139,6 +140,62 @@ exports.getRate = asyncHandler(async (req, res, next) => {
     data: rate,
   });
 });
+
+exports.getTopRatedPlaces = asyncHandler(async (req, res, next) => {
+  try {
+    const topRatedPlaces = await Rate.aggregate([
+      {
+        $group: {
+          _id: "$place",
+          averageRating: { $avg: "$rate" },
+          totalReviews: { $sum: 1 },
+        },
+      },
+      {
+        $sort: {
+          averageRating: -1,
+          totalReviews: -1,
+        },
+      },
+      {
+        $lookup: {
+          from: "places", // Танай Place цуглуулгын нэр байх ёстой
+          localField: "_id",
+          foreignField: "_id",
+          as: "placeDetails",
+        },
+      },
+      {
+        $unwind: "$placeDetails",
+      },
+      {
+        $project: {
+          _id: 1,
+          averageRating: 1,
+          totalReviews: 1,
+          placeDetails: {
+            name: 1,
+            addressText: 1,
+            logo: 1,
+            pictures: 1,
+            categories: 1,
+          },
+        },
+      },
+      {
+        $limit: 10, // Хүссэн газруудын тоог өөрчлөх
+      },
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: topRatedPlaces,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 
 exports.getCountRate = asyncHandler(async (req, res) => {
   const count = await Rate.countDocuments();
