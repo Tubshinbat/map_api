@@ -187,6 +187,11 @@ exports.getTopRatedPlaces = asyncHandler(async (req, res, next) => {
         $unwind: "$placeDetails",
       },
       {
+        $match: {
+          "placeDetails.status": true,
+        },
+      },
+      {
         $lookup: {
           from: "users",
           localField: "reviewers",
@@ -210,7 +215,8 @@ exports.getTopRatedPlaces = asyncHandler(async (req, res, next) => {
                   input: "$reviewerDetails",
                   as: "reviewer",
                   in: {
-                    name: "$$reviewer.name",
+                    name: "$$reviewer.firstName",
+                    picture: "$$reviwer.picture",
                     rating: {
                       $arrayElemAt: [
                         {
