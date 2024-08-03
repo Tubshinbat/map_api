@@ -241,7 +241,7 @@ const getRandomCategories = async () => {
 exports.getRandomCategoryPlaces = asyncHandler(async (req, res, next) => {
   try {
     const randomCategories = await getRandomCategories();
-    console.log(randomCategories);
+
     const categoryIds = randomCategories.map((category) => category._id);
 
     const placesForCategory1 = await Place.aggregate([
@@ -253,6 +253,10 @@ exports.getRandomCategoryPlaces = asyncHandler(async (req, res, next) => {
       { $match: { categories: categoryIds[1], status: true } },
       { $sample: { size: 6 } },
     ]);
+
+    console.log(placesForCategory1);
+    console.log("==========");
+    console.log(placesForCategory2);
 
     res.status(200).json({
       success: true,
