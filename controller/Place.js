@@ -241,6 +241,7 @@ const getRandomCategories = async () => {
 exports.getRandomCategoryPlaces = asyncHandler(async (req, res, next) => {
   try {
     const randomCategories = await getRandomCategories();
+    console.log(randomCategories);
     const categoryIds = randomCategories.map((category) => category._id);
 
     const placesForCategory1 = await Place.aggregate([
