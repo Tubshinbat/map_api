@@ -243,14 +243,15 @@ exports.getRandomCategoryPlaces = asyncHandler(async (req, res, next) => {
     const randomCategories = await getRandomCategories();
     const categoryIds = randomCategories.map((category) => category._id);
 
-    const placesForCategory1 = await Place.find({
-      categories: categoryIds[0],
-      status: true,
-    }).limit(6);
-    const placesForCategory2 = await Place.find({
-      categories: categoryIds[1],
-      status: true,
-    }).limit(6);
+    const placesForCategory1 = await Place.aggregate([
+      { $match: { categories: categoryIds[0], status: true } },
+      { $sample: { size: 6 } },
+    ]);
+
+    const placesForCategory2 = await Place.aggregate([
+      { $match: { categories: categoryIds[1], status: true } },
+      { $sample: { size: 6 } },
+    ]);
 
     res.status(200).json({
       success: true,
