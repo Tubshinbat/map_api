@@ -33,7 +33,10 @@ exports.placeSearch = asyncHandler(async (req, res) => {
 
     const results = await Place.find(searchQuery);
 
-    res.json(results);
+    res.status(200).json({
+      success: true,
+      data: results,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
