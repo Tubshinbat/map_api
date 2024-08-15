@@ -17,6 +17,28 @@ const PlaceCategory = require("../models/PlaceCategory");
 // DEFUALT DATAS
 const sortDefualt = { createAt: -1 };
 
+exports.placeSearch = asyncHandler(async (req, res) => {
+  try {
+    const { query } = req.query; // Товчоор хэлбэл хайлт хийх утгууд
+
+    const searchQuery = {
+      $or: [
+        { address_ne: new RegExp(query, "i") }, // address_ne талбарт хайх
+        { address_st: new RegExp(query, "i") }, // address_st талбарт хайх
+        { address_kh: new RegExp(query, "i") }, // address_kh талбарт хайх
+        { addressText: new RegExp(query, "i") }, // addressText талбарт хайх
+        { name: new RegExp(query, "i") }, // name талбарт хайх
+      ],
+    };
+
+    const results = await Place.find(searchQuery);
+
+    res.json(results);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 exports.createPlace = asyncHandler(async (req, res) => {
   const userInput = req.body;
   const strFields = getModelPaths(Place);

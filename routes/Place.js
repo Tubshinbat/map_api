@@ -10,6 +10,7 @@ const {
   updatePlace,
   getCountPlace,
   getRandomCategoryPlaces,
+  placeSearch,
 } = require("../controller/Place");
 
 router
@@ -18,6 +19,7 @@ router
   .get(getPlaces);
 
 router.route("/random-place-categories").get(getRandomCategoryPlaces);
+router.route("/search").get(placeSearch);
 router.route("/count").get(getCountPlace);
 
 router.route("/delete").delete(protect, authorize("admin"), multDeletePlace);
