@@ -48,6 +48,28 @@ exports.createPlace = asyncHandler(async (req, res) => {
   });
 });
 
+exports.searchPlace = asyncHandler(async (req, res) => {
+  try {
+    const { query } = req.query;
+
+    const searchQuery = {
+      $or: [
+        { address_ne: new RegExp(query, "i") },
+        { address_st: new RegExp(query, "i") },
+        { address_kh: new RegExp(query, "i") },
+        { addressText: new RegExp(query, "i") },
+        { name: new RegExp(query, "i") },
+      ],
+    };
+
+    const results = await Place.find(searchQuery);
+
+    res.json(results);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 exports.getPlaces = asyncHandler(async (req, res) => {
   const userInput = req.query;
   const page = parseInt(req.query.page) || 1;

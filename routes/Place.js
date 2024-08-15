@@ -19,6 +19,7 @@ router
 
 router.route("/random-place-categories").get(getRandomCategoryPlaces);
 router.route("/count").get(getCountPlace);
+
 router.route("/delete").delete(protect, authorize("admin"), multDeletePlace);
 router
   .route("/:id")
