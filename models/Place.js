@@ -15,10 +15,22 @@ const PlaceSchema = new Schema({
     default: false,
   },
 
+  isAddress: {
+    type: Boolean,
+    enum: [true, false],
+    default: false,
+  },
+
   name: {
     type: String,
     trim: true,
     required: [true, "Хаяг байршилын нэрийг оруулна уу"],
+  },
+
+  engName: {
+    type: String,
+    trim: true,
+    required: [true, "Хаяг байршилын Англи хэл дээр нэрийг оруулна уу"],
   },
 
   slug: { type: String },
@@ -31,7 +43,6 @@ const PlaceSchema = new Schema({
   logo: {
     type: String,
     trim: true,
-    default: "no-logo.png",
   },
 
   about: {
@@ -43,9 +54,35 @@ const PlaceSchema = new Schema({
     type: [Object],
   },
 
-  addressText: {
+  vicinity: {
     type: String,
     trim: true,
+  },
+
+  addressText: {
+    type: [String],
+    trim: true,
+  },
+
+  cityProvince: {
+    type: mongoose.Schema.ObjectId,
+    ref: "City",
+    default: null,
+    required: false,
+  },
+
+  district: {
+    type: mongoose.Schema.ObjectId,
+    ref: "District",
+    default: null,
+    required: false,
+  },
+
+  khoroo: {
+    type: mongoose.Schema.ObjectId,
+    ref: "Khoroo",
+    default: null,
+    required: false,
   },
 
   address_kh: {
@@ -63,16 +100,17 @@ const PlaceSchema = new Schema({
     trim: true,
   },
 
-  lat: {
-    type: String,
-    trim: true,
-    required: [true, "Уртраг өргөрөг заавал оруулна уу"],
-  },
-
-  lng: {
-    type: String,
-    trim: true,
-    required: [true, "Уртраг өргөрөг заавал оруулна уу"],
+  location: {
+    type: {
+      type: String,
+      enum: ["Point"],
+      required: true,
+      default: "Point",
+    },
+    coordinates: {
+      type: [Number],
+      required: true,
+    },
   },
 
   categories: [
@@ -107,5 +145,8 @@ const PlaceSchema = new Schema({
     default: Date.now,
   },
 });
+
+// 2dsphere индекс үүсгэх
+PlaceSchema.index({ location: "2dsphere" });
 
 module.exports = mongoose.model("Place", PlaceSchema);

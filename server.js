@@ -34,6 +34,10 @@ const WebinfoRouters = require("./routes/WebInfo");
 const SocialRouters = require("./routes/SocialLink");
 const BankAccountRouters = require("./routes/BankAccount");
 const QpayAccountRouters = require("./routes/Qpay");
+const PolygonRouters = require("./routes/Polygon");
+const CityRouters = require("./routes/City");
+const DistrictRouter = require("./routes/District");
+const KhorooRouter = require("./routes/Khoroo");
 
 dotenv.config({ path: "./config/config.env" });
 const app = express();
@@ -43,9 +47,13 @@ connectDB();
 // Манай рест апиг дуудах эрхтэй сайтуудын жагсаалт :
 var whitelist = [
   "http://localhost:3000",
+  "http://localhost:8081",
+  "http://127.0.0.1/:8081",
   "http://localhost:3001",
   "https://map.webr.mn",
   "http://map.webr.mn",
+  "http://192.168.1.2:8081",
+  "exp://192.168.1.2:8081",
 ];
 
 // Өөр домэйн дээр байрлах клиент вэб аппуудаас шаардах шаардлагуудыг энд тодорхойлно
@@ -112,6 +120,10 @@ app.use("/api/v1/webinfos", WebinfoRouters);
 app.use("/api/v1/socials", SocialRouters);
 app.use("/api/v1/bankaccounts", BankAccountRouters);
 app.use("/api/v1/qpayaccounts", QpayAccountRouters);
+app.use("/api/v1/polygons", PolygonRouters);
+app.use("/api/v1/cities", CityRouters);
+app.use("/api/v1/districts", DistrictRouter);
+app.use("/api/v1/khoroos", KhorooRouter);
 
 app.use(errorHandler);
 // Алдаа үүсэхэд барьж авч алдааны мэдээллийг клиент тал руу автоматаар мэдээлнэ

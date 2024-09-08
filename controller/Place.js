@@ -1,6 +1,10 @@
 const Place = require("../models/Place");
 const MyError = require("../utils/myError");
 const asyncHandler = require("express-async-handler");
+const shapefile = require("shapefile");
+const path = require("path");
+const fs = require("fs");
+const iconv = require("iconv-lite");
 
 const paginate = require("../utils/paginate");
 const { imageDelete } = require("../lib/photoUpload");
@@ -9,6 +13,9 @@ const {
   userSearch,
   placeCategorySearch,
   RegexOptions,
+  cityProvinceSearch,
+  districtSearch,
+  khorooSearch,
 } = require("../lib/searchOfterModel");
 const { sortBuild, getModelPaths } = require("../lib/build");
 const { slugify } = require("transliteration");
@@ -23,15 +30,16 @@ exports.placeSearch = asyncHandler(async (req, res) => {
 
     const searchQuery = {
       $or: [
-        { address_ne: new RegExp(query, "i") }, // address_ne талбарт хайх
-        { address_st: new RegExp(query, "i") }, // address_st талбарт хайх
-        { address_kh: new RegExp(query, "i") }, // address_kh талбарт хайх
-        { addressText: new RegExp(query, "i") }, // addressText талбарт хайх
-        { name: new RegExp(query, "i") }, // name талбарт хайх
+        { address_ne: new RegExp(query, "i") },
+        { address_st: new RegExp(query, "i") },
+        { address_kh: new RegExp(query, "i") },
+        { addressText: new RegExp(query, "i") },
+        { name: new RegExp(query, "i") },
+        { engName: new RegExp(query, "i") },
       ],
     };
 
-    const results = await Place.find(searchQuery);
+    const results = await Place.find(searchQuery).populate("categories");
 
     res.status(200).json({
       success: true,
@@ -42,13 +50,63 @@ exports.placeSearch = asyncHandler(async (req, res) => {
   }
 });
 
+exports.coordinateSearch = asyncHandler(async (req, res) => {
+  const { location, radius } = req.query;
+
+  if (!location) {
+    throw new MyError("Байршлын координатыг оруулна уу", 400);
+  }
+
+  const coordinate = location.split(",");
+  const lat = parseFloat(coordinate[0]);
+  const lng = parseFloat(coordinate[1]);
+
+  if (isNaN(lat) || isNaN(lng)) {
+    throw new MyError("Уртраг, өргөргийн утгыг зөв форматтай оруулна уу", 400);
+  }
+
+  const maxRadius = radius ? parseInt(radius, 10) : 50;
+
+  const place = await Place.find({
+    location: {
+      $near: {
+        $geometry: {
+          type: "Point",
+          coordinates: [lng, lat],
+        },
+        $maxDistance: maxRadius,
+      },
+    },
+  })
+    .populate("cityProvince")
+    .populate("district")
+    .populate("khoroo");
+
+  res.status(200).json({
+    success: true,
+    data: place,
+  });
+});
+
 exports.createPlace = asyncHandler(async (req, res) => {
   const userInput = req.body;
   const strFields = getModelPaths(Place);
   req.body.status = userInput["status"] || true;
   req.body.createUser = req.userId;
-
   const name = req.body.name;
+
+  const { type, coordinates, cityProvince, district, khoroo } = req.body;
+
+  req.body.location = {
+    type,
+    coordinates,
+  };
+
+  if (!valueRequired(cityProvince)) req.body.cityProvince = null;
+  if (!valueRequired(district)) req.body.district = null;
+  if (!valueRequired(khoroo)) req.body.khoroo = null;
+
+  console.log(req.body);
 
   const uniqueName = await Place.find({ name });
 
@@ -103,13 +161,34 @@ exports.getPlaces = asyncHandler(async (req, res) => {
 
   //  FIELDS
   const strFields = getModelPaths(Place);
-  const createUser = userInput["createUser"];
-  const updateUser = userInput["updateUser"];
-  const status = userInput["status"];
-  const star = userInput["star"];
-  const categories = userInput["categories"];
+  const {
+    createUser,
+    updateUser,
+    status,
+    star,
+    categories,
+    cityProvince,
+    district,
+    khoroo,
+    isAddress,
+  } = userInput;
 
   const query = Place.find();
+
+  if (valueRequired(cityProvince)) {
+    const result = await cityProvinceSearch(cityProvince);
+    if (result) query.where("cityProvince").in(result);
+  }
+
+  if (valueRequired(district)) {
+    const result = await districtSearch(district);
+    if (result) query.where("district").in(result);
+  }
+
+  if (valueRequired(khoroo)) {
+    const result = await khorooSearch(khoroo);
+    if (result) query.where("khoroo").in(result);
+  }
 
   strFields.map((el) => {
     if (valueRequired(userInput[el]))
@@ -132,6 +211,12 @@ exports.getPlaces = asyncHandler(async (req, res) => {
     else query.where("status").equals(status);
   }
 
+  if (valueRequired(isAddress)) {
+    if (isAddress.split(",").length > 1)
+      query.where("isAddress").in(isAddress.split(","));
+    else query.where("isAddress").equals(isAddress);
+  }
+
   if (valueRequired(star)) {
     if (star.split(",").length > 1) query.where("star").in(star.split(","));
     else query.where("star").equals(star);
@@ -144,9 +229,13 @@ exports.getPlaces = asyncHandler(async (req, res) => {
 
   if (valueRequired(sort)) query.sort(sortBuild(sort, sortDefualt));
 
-  query.populate("createUser");
-  query.populate("updateUser");
-  query.populate("categories");
+  query
+    .populate("createUser")
+    .populate("updateUser")
+    .populate("categories")
+    .populate("district")
+    .populate("cityProvince")
+    .populate("khoroo");
 
   const qc = query.toConstructor();
   const clonedQuery = new qc();
@@ -201,7 +290,10 @@ exports.getPlace = asyncHandler(async (req, res) => {
   const place = await Place.findByIdAndUpdate(req.params.id)
     .populate("categories")
     .populate("createUser")
-    .populate("updateUser");
+    .populate("updateUser")
+    .populate("district")
+    .populate("cityProvince")
+    .populate("khoroo");
 
   if (!place) throw new MyError("Өгөгдөл олдсонгүй. ", 404);
 
@@ -233,6 +325,16 @@ exports.updatePlace = asyncHandler(async (req, res, next) => {
 
   const userInput = req.body;
   const strFields = getModelPaths(Place);
+  const { type, coordinates, cityProvince, district, khoroo } = req.body;
+
+  if (!valueRequired(cityProvince)) req.body.cityProvince = null;
+  if (!valueRequired(district)) req.body.district = null;
+  if (!valueRequired(khoroo)) req.body.khoroo = null;
+
+  req.body.location = {
+    type,
+    coordinates,
+  };
 
   const uniqueName = await Place.find({ name: userInput["name"] });
 
@@ -253,6 +355,7 @@ exports.updatePlace = asyncHandler(async (req, res, next) => {
   if (!userInput["logo"]) req.body.logo = "";
   if (!userInput["categories"]) req.body.categories = [];
   if (!userInput["pictures"]) req.body.pictures = [];
+  if (!userInput["addressText"]) req.body.addressText = [];
 
   req.body.updateUser = req.userId;
   req.body.updateAt = Date.now();

@@ -11,6 +11,7 @@ const {
   getCountPlace,
   getRandomCategoryPlaces,
   placeSearch,
+  coordinateSearch,
 } = require("../controller/Place");
 
 router
@@ -18,6 +19,7 @@ router
   .post(protect, authorize("admin", "operator"), createPlace)
   .get(getPlaces);
 
+router.route("/nearbysearch").get(coordinateSearch);
 router.route("/random-place-categories").get(getRandomCategoryPlaces);
 router.route("/search").get(placeSearch);
 router.route("/count").get(getCountPlace);
