@@ -38,6 +38,7 @@ exports.getRates = asyncHandler(async (req, res, next) => {
   // PARTNER FIELDS
   const strFields = getModelPaths(Rate);
   const place = req.query.place;
+  const placeId = req.query.placeId;
   const query = Rate.find();
 
   if (valueRequired(place)) {
@@ -45,6 +46,9 @@ exports.getRates = asyncHandler(async (req, res, next) => {
     if (ids) query.where("place").in(ids);
   }
 
+  if (valueRequired(placeId)) {
+    query.where("place").in(placeId);
+  }
   strFields.map((el) => {
     if (valueRequired(userInput[el]))
       query.find({ [el]: RegexOptions(userInput[el]) });

@@ -117,7 +117,7 @@ exports.getCitys = asyncHandler(async (req, res) => {
 
   if (valueRequired(sort)) query.sort(sortBuild(sort, sortDefualt));
 
-  query.populate("createUser").populate("updateUser").populate("polygon");
+  query.populate("createUser").populate("updateUser");
 
   const qc = query.toConstructor();
   const clonedQuery = new qc();

@@ -51,7 +51,6 @@ exports.searchKhoroo = asyncHandler(async (req, res) => {
 
 exports.getAllData = asyncHandler(async (req, res) => {
   const datas = await Khoroo.find({})
-    .populate("polygon")
     .populate("district")
     .populate("cityProvince")
     .sort(sortDefualt)
@@ -111,7 +110,6 @@ exports.getKhoroos = asyncHandler(async (req, res) => {
   query
     .populate("createUser")
     .populate("updateUser")
-    .populate("polygon")
     .populate("district")
     .populate("cityProvince");
 

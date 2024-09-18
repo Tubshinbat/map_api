@@ -103,11 +103,7 @@ exports.getDistricts = asyncHandler(async (req, res) => {
 
   if (valueRequired(sort)) query.sort(sortBuild(sort, sortDefualt));
 
-  query
-    .populate("createUser")
-    .populate("updateUser")
-    .populate("polygon")
-    .populate("cityProvince");
+  query.populate("createUser").populate("updateUser").populate("cityProvince");
 
   const qc = query.toConstructor();
   const clonedQuery = new qc();

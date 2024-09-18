@@ -1,4 +1,5 @@
 const Place = require("../models/Place");
+const Rate = require("../models/Rate");
 const MyError = require("../utils/myError");
 const asyncHandler = require("express-async-handler");
 const shapefile = require("shapefile");
@@ -26,20 +27,31 @@ const sortDefualt = { createAt: -1 };
 
 exports.placeSearch = asyncHandler(async (req, res) => {
   try {
-    const { query } = req.query; // Товчоор хэлбэл хайлт хийх утгууд
+    const { query, cityId, districtId, khorooId, isAddress } = req.query; // Товчоор хэлбэл хайлт хийх утгууд
 
     const searchQuery = {
       $or: [
-        { address_ne: new RegExp(query, "i") },
-        { address_st: new RegExp(query, "i") },
-        { address_kh: new RegExp(query, "i") },
-        { addressText: new RegExp(query, "i") },
-        { name: new RegExp(query, "i") },
-        { engName: new RegExp(query, "i") },
+        { address_ne: new RegExp(query.trim(), "i") },
+        { address_st: new RegExp(query.trim(), "i") },
+        { address_kh: new RegExp(query.trim(), "i") },
+        { addressText: new RegExp(query.trim(), "i") },
+        { name: new RegExp(query.trim(), "i") },
+        { engName: new RegExp(query.trim(), "i") },
       ],
     };
 
-    const results = await Place.find(searchQuery).populate("categories");
+    if (valueRequired(cityId)) searchQuery.cityProvince = cityId;
+    if (valueRequired(districtId)) searchQuery.district = districtId;
+    if (valueRequired(khorooId)) searchQuery.khoroo = khorooId;
+    if (isAddress) searchQuery.isAddress = isAddress;
+
+    console.log(searchQuery);
+
+    const results = await Place.find(searchQuery)
+      .populate("categories")
+      .populate("cityProvince")
+      .populate("district")
+      .populate("khoroo");
 
     res.status(200).json({
       success: true,
@@ -51,7 +63,7 @@ exports.placeSearch = asyncHandler(async (req, res) => {
 });
 
 exports.coordinateSearch = asyncHandler(async (req, res) => {
-  const { location, radius } = req.query;
+  const { location, radius, category, isAddress } = req.query;
 
   if (!location) {
     throw new MyError("Байршлын координатыг оруулна уу", 400);
@@ -67,7 +79,7 @@ exports.coordinateSearch = asyncHandler(async (req, res) => {
 
   const maxRadius = radius ? parseInt(radius, 10) : 50;
 
-  const place = await Place.find({
+  const query = {
     location: {
       $near: {
         $geometry: {
@@ -77,14 +89,48 @@ exports.coordinateSearch = asyncHandler(async (req, res) => {
         $maxDistance: maxRadius,
       },
     },
-  })
+  };
+
+  if (valueRequired(category)) {
+    query.categories = { $in: Array.isArray(category) ? category : [category] };
+  }
+
+  if (isAddress === "false") {
+    query.isAddress = false;
+  }
+
+  const place = await Place.find(query)
     .populate("cityProvince")
     .populate("district")
-    .populate("khoroo");
+    .populate("khoroo")
+    .populate("categories")
+    .lean();
+
+  const placeIds = place.map((p) => p._id); // Олдсон бүх Place-үүдийн ID-г цуглуулах
+
+  const ratings = await Rate.aggregate([
+    {
+      $match: { place: { $in: placeIds } }, // Place ID-ээр тохирох Rate-үүдийг шүүж авах
+    },
+    {
+      $group: {
+        _id: "$place", // Place бүрийн ID-р бүлэглэх
+        averageRating: { $avg: "$rate" }, // Дундаж үнэлгээг тооцоолох
+      },
+    },
+  ]);
+
+  // Дундаж үнэлгээг олдсон газруудад тохируулж нэмэх
+  const updatedPlaces = place.map((p) => {
+    const plainPlace = p;
+    const rating = ratings.find((r) => r._id.equals(p._id));
+    plainPlace.averageRating = rating ? rating.averageRating : null;
+    return plainPlace;
+  });
 
   res.status(200).json({
     success: true,
-    data: place,
+    data: updatedPlaces,
   });
 });
 
@@ -171,6 +217,11 @@ exports.getPlaces = asyncHandler(async (req, res) => {
     district,
     khoroo,
     isAddress,
+    cityId,
+    districtId,
+    categoryId,
+    khorooId,
+    searchText,
   } = userInput;
 
   const query = Place.find();
@@ -188,6 +239,36 @@ exports.getPlaces = asyncHandler(async (req, res) => {
   if (valueRequired(khoroo)) {
     const result = await khorooSearch(khoroo);
     if (result) query.where("khoroo").in(result);
+  }
+
+  if (valueRequired(cityId)) {
+    query.where("cityProvince", cityId);
+  }
+
+  if (valueRequired(districtId)) {
+    query.where("district", districtId);
+  }
+
+  if (valueRequired(categoryId)) {
+    query.where("categories").in([categoryId]);
+  }
+  if (valueRequired(khorooId)) {
+    query.where("khoroo", khorooId);
+  }
+
+  if (valueRequired(searchText)) {
+    const searchQuery = {
+      $or: [
+        { address_ne: new RegExp(searchText.trim(), "i") },
+        { address_st: new RegExp(searchText.trim(), "i") },
+        { address_kh: new RegExp(searchText.trim(), "i") },
+        { addressText: new RegExp(searchText.trim(), "i") },
+        { name: new RegExp(searchText.trim(), "i") },
+        { engName: new RegExp(searchText.trim(), "i") },
+      ],
+    };
+
+    query.find(searchQuery);
   }
 
   strFields.map((el) => {
@@ -293,7 +374,8 @@ exports.getPlace = asyncHandler(async (req, res) => {
     .populate("updateUser")
     .populate("district")
     .populate("cityProvince")
-    .populate("khoroo");
+    .populate("khoroo")
+    .lean();
 
   if (!place) throw new MyError("Өгөгдөл олдсонгүй. ", 404);
 
@@ -312,10 +394,30 @@ exports.getPlace = asyncHandler(async (req, res) => {
   //     }
   //   });
   // }
+  const placeId = place._id;
+  const ratings = await Rate.aggregate([
+    {
+      $match: { place: placeId },
+    },
+    {
+      $group: {
+        _id: "$place",
+        averageRating: { $avg: "$rate" },
+      },
+    },
+  ]);
+
+  const rating = ratings.find((r) => r._id.equals(place._id));
+
+  const updatePlace = {
+    ...place,
+    averageRating: rating ? rating.averageRating : null,
+    rateCount: (ratings && ratings?.length) || 0,
+  };
 
   res.status(200).json({
     success: true,
-    data: place,
+    data: updatePlace,
   });
 });
 
