@@ -52,6 +52,10 @@ var whitelist = [
   "http://localhost:3001",
   "https://map.webr.mn",
   "http://map.webr.mn",
+  "https://map.gotire.mn",
+  "http://map.gotire.mn",
+  "https://www.map.gotire.mn",
+  "http://www.map.gotire.mn",
   "http://192.168.1.2:8081",
   "exp://192.168.1.2:8081",
 ];
