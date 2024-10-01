@@ -26,7 +26,6 @@ const UserSchema = new mongoose.Schema(
 
     lastName: {
       type: String,
-      required: [true, "Овог нэрээ оруулна уу"],
       minlength: [1, "Нэр 1 үсэгнээс бүтэхгүй болно."],
       trim: true,
     },
