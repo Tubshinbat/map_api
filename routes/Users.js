@@ -17,6 +17,7 @@ const {
   resetPassword,
   checklogin,
   changePassword,
+  register,
 } = require("../controller/Users");
 
 router.route("/login").post(login);
@@ -25,6 +26,7 @@ router.route("/forgot").post(forgotPassword);
 router.route("/verifyotp").post(verifyOTP);
 router.route("/resetpassword").post(resetPassword);
 router.route("/checklogin").get(checklogin);
+router.route("/register").post(register);
 
 router
   .route("/")

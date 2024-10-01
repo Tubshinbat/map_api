@@ -13,7 +13,8 @@ toyota.js
 # production
 /build
 /public
-
+/db
+/log
 
 
 # misc

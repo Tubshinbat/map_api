@@ -18,6 +18,7 @@ const sortDefualt = { createAt: -1 };
 exports.register = asyncHandler(async (req, res) => {
   const userInput = req.body;
   const strFields = getModelPaths(User);
+  delete req.body.role, req.body.memberShip;
 
   req.body.email = userInput["email"].trim().toLowerCase();
 
