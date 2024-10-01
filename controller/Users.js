@@ -45,6 +45,8 @@ exports.login = asyncHandler(async (req, res) => {
   )
     throw new MyError("Имэйл болон нууц үгээ оруулна уу", 400);
 
+  userInput["email"] = userInput["email"].trim().toLowerCase();
+
   const user = await User.findOne({ email: userInput["email"] }).select(
     "+password"
   );
