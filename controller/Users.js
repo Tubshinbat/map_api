@@ -418,6 +418,8 @@ exports.forgotPassword = asyncHandler(async (req, res, next) => {
     throw new MyError("Имэйл явуулахад алдаа гарлаа дахин оролдоно уу", 400);
   }
 
+  console.log(resetToken);
+
   res.status(200).json({
     success: true,
     beforeOtp: false,
