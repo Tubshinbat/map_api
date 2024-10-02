@@ -314,7 +314,7 @@ exports.forgotPassword = asyncHandler(async (req, res, next) => {
   const { email } = req.body;
   if (!email) throw new MyError("Имэйл хаягаа оруулна уу", 400);
 
-  const user = await User.findOne({ email });
+  const user = await User.findOne({ email: email.trim().toLowerCase() });
   if (!user) throw new MyError("Мэдээллээ дахин шалгана уу", 400);
 
   if (user.resetPasswordExpire >= Date.now()) {
